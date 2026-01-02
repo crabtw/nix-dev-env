@@ -3,7 +3,7 @@
     nixpkgs.url = "nixpkgs/nixos-unstable";
 
     fenix = {
-      url = "github:nix-community/fenix";
+      url = "github:nix-community/fenix/monthly";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -28,22 +28,32 @@
             inherit system;
           };
 
+          llvm = pkgs.llvmPackages_latest;
+
+          llvmStdenv = pkgs.overrideCC llvm.libcxxStdenv (
+            llvm.libcxxStdenv.cc.override {
+              inherit (llvm) bintools;
+            }
+          );
+
           fenixPkgs = fenix.packages.${system};
         in
-        pkgs.mkShell {
+        pkgs.mkShell.override { stdenv = llvmStdenv; } {
           buildInputs = [
-            (fenixPkgs.stable.withComponents [
+            (fenixPkgs.latest.withComponents [
               "cargo"
               "rustc"
               "clippy"
               "rustfmt"
+              "miri"
             ])
             pkgs.valgrind
           ];
         };
-
     in
     {
-      devShell = forAllSystems buildPackage;
+      devShells = forAllSystems (system: {
+        default = buildPackage system;
+      });
     };
 }

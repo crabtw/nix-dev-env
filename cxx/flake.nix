@@ -10,12 +10,12 @@
 
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
 
-      mkPkgs = system: import nixpkgs { inherit system; };
-
       buildPackage =
         system:
         let
-          pkgs = mkPkgs system;
+          pkgs = import nixpkgs {
+            inherit system;
+          };
 
           llvm = pkgs.llvmPackages_latest;
 
@@ -37,6 +37,8 @@
         };
     in
     {
-      devShell = forAllSystems buildPackage;
+      devShells = forAllSystems (system: {
+        default = buildPackage system;
+      });
     };
 }
